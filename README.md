@@ -9,9 +9,9 @@ This file works on its own. To use it please do the following:
 - Acceleration
 - Deceleration
 
--- Please place the file into the "craft" folder, instructions:
+-- Please place the file into the "craft" folder, these instructions take you folder by folder:
 
-- Movecraft
+- Movecraft-8.0.0_beta-2
 - modules
 - Movecraft
 - src
