@@ -1,0 +1,82 @@
+package net.countercraft.movecraft.commands;
+
+import net.countercraft.movecraft.craft.PilotedCraft;
+import net.countercraft.movecraft.craft.CraftManager;  
+import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public class SetCruiseSpeedCommand implements CommandExecutor {
+
+    private final JavaPlugin plugin;
+
+    public SetCruiseSpeedCommand(JavaPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("This command can only be executed by a player.");
+            return true;
+        }
+
+        Player player = (Player) sender;
+
+        PilotedCraft pilotedCraft = CraftManager.getInstance().getCraftByPlayer(player);  // Updated method call
+        if (pilotedCraft == null) {
+            player.sendMessage("You must be piloting a craft to use this command.");
+            return true;
+        }
+
+        if (args.length != 1) {
+            player.sendMessage("Usage: /setcruisespeed <speed>");
+            return true;
+        }
+
+        try {
+            int targetSpeed = Integer.parseInt(args[0]);
+
+            setAcceleratingCruiseSpeedAsync(pilotedCraft, targetSpeed);
+            player.sendMessage("Cruise speed set to " + targetSpeed);
+        } catch (NumberFormatException e) {
+            player.sendMessage("Invalid speed. Please enter a valid number.");
+        }
+
+        return true;
+    }
+
+    private void setAcceleratingCruiseSpeedAsync(PilotedCraft pilotedCraft, int targetSpeed) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            int currentSpeed = pilotedCraft.getCruiseSpeed();
+            double acceleration = pilotedCraft.getCraftType().getAcceleration();
+            int maxCruiseSpeed = pilotedCraft.getCraftType().getMaxCruiseSpeed();
+            int minCruiseSpeed = pilotedCraft.getCraftType().getMinCruiseSpeed();
+
+            while (currentSpeed != targetSpeed) {
+                if (currentSpeed < targetSpeed) {
+                    currentSpeed += acceleration;
+                } else {
+                    currentSpeed -= acceleration;
+                }
+
+                if (currentSpeed > maxCruiseSpeed) {
+                    currentSpeed = maxCruiseSpeed;
+                } else if (currentSpeed < minCruiseSpeed) {
+                    currentSpeed = minCruiseSpeed;
+                }
+
+                Bukkit.getScheduler().runTask(plugin, () -> pilotedCraft.setCruiseSpeed(currentSpeed));
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+}
